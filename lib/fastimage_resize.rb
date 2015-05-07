@@ -61,6 +61,7 @@ class FastImage
   def self.resize(input, w, h, options={})
     jpeg_quality = options[:jpeg_quality] || -1
     file_out = options[:outfile]
+    out_type = options[:out_type]
     
     if input.respond_to?(:read)
       file_in = read_to_local(input)
@@ -76,6 +77,12 @@ class FastImage
     fast_image = new(file_in, :raise_on_failure=>true)
     type_index = SUPPORTED_FORMATS.index(fast_image.type)
     raise FormatNotSupported unless type_index
+    out_index = type_index
+    
+    if out_type
+	    out_index = SUPPORTED_FORMATS.index(out_type)
+	    raise FormatNotSupported unless out_index
+    end
 
     if !file_out
       temp_file = Tempfile.new([name, ".#{FILE_EXTENSIONS[type_index]}"])
@@ -87,7 +94,7 @@ class FastImage
 
     in_path = file_in.respond_to?(:path) ? file_in.path : file_in
 
-    fast_image.resize_image(in_path, file_out.to_s, w.to_i, h.to_i, type_index, jpeg_quality.to_i)
+    fast_image.resize_image(in_path, file_out.to_s, w.to_i, h.to_i, type_index, out_index, jpeg_quality.to_i)
 
     if file_in.respond_to?(:close)
       file_in.close
@@ -111,14 +118,14 @@ class FastImage
     temp
   end
 
-  def resize_image(filename_in, filename_out, w, h, image_type, jpeg_quality); end
+  def resize_image(filename_in, filename_out, w, h, image_type, out_image_type, jpeg_quality); end
   
   inline do |builder|
     builder.include '"gd.h"'
     builder.add_link_flags "-lgd"
     
     builder.c <<-"END"
-      VALUE resize_image(char *filename_in, char *filename_out, int w, int h, int image_type, int jpeg_quality) {
+      VALUE resize_image(char *filename_in, char *filename_out, int w, int h, int image_type, int out_image_type, int jpeg_quality) {
         gdImagePtr im_in, im_out;
         FILE *in, *out;
         int trans = 0, x = 0, y = 0, f = 0;
@@ -178,7 +185,7 @@ class FastImage
 
         out = fopen(filename_out, "wb");
         if (out) {
-          switch(image_type) {
+          switch(out_image_type) {
             case 0: gdImageJpeg(im_out, out, jpeg_quality);
                     break;
             case 1: gdImagePng(im_out, out);
