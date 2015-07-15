@@ -178,6 +178,7 @@ class FastImage
         
         fclose(in);
         
+	//gdImageCopyResampled( dst, src, dstX, dstY, srcX, srcY, dstW, dstH, srcW, srcH )
         /* Now copy the original */
         gdImageCopyResampled(im_out, im_in, 0, 0, 0, 0,
           gdImageSX(im_out), gdImageSY(im_out),
