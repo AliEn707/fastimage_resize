@@ -9,3 +9,4 @@ outfile = FastImage.resize("1.jpg", 50, 50)
   
 #File.open("afile.png", "r") {|f| FastImage.resize(f, 100, 100)}
   
+  FastImage.resize("1.jpg", 0, 0, :outfile=>"2.png", out_type: :png)

@@ -58,11 +58,12 @@ class FastImage
   # [:outfile]
   #   Name of a file to store the output in, in this case a temp file is not used
   #
-  def self.resize(input, w, h, options={})
+  def self.resize(input, w=0, h=0, options={})
     jpeg_quality = options[:jpeg_quality] || -1
     file_out = options[:outfile]
     out_type = options[:out_type]
     
+   
     if input.respond_to?(:read)
       file_in = read_to_local(input)
     else
@@ -93,7 +94,10 @@ class FastImage
     end
 
     in_path = file_in.respond_to?(:path) ? file_in.path : file_in
-
+    if (w.to_i==0 && h.to_i==0) then
+	w,h=fast_image.size
+    end
+    p w,h
     fast_image.resize_image(in_path, file_out.to_s, w.to_i, h.to_i, type_index, out_index, jpeg_quality.to_i)
 
     if file_in.respond_to?(:close)
@@ -189,7 +193,7 @@ class FastImage
           switch(out_image_type) {
             case 0: gdImageJpeg(im_out, out, jpeg_quality);
                     break;
-            case 1: gdImagePng(im_out, out);
+            case 1: gdImagePngEx(im_out, out, 9);
                     break;
             case 2: gdImageTrueColorToPalette(im_out, 0, 256);
                     if (trans >= 0) {
