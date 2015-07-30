@@ -54,7 +54,7 @@ class FastImage
   #
   # === Supported options
   # [:jpeg_quality]
-  #   A figure passed to libgd to determine quality of output jpeg (only useful if input is jpeg)
+  #   A figure passed to libgd to determine quality of output jpeg (only useful if output is jpeg)
   # [:outfile]
   #   Name of a file to store the output in, in this case a temp file is not used
   #
@@ -62,8 +62,8 @@ class FastImage
     jpeg_quality = options[:jpeg_quality] || -1
     file_out = options[:outfile]
     out_type = options[:out_type]
-    
-   
+    crop=options[:crop] || {} #cropping from left up corner
+       
     if input.respond_to?(:read)
       file_in = read_to_local(input)
     else
@@ -94,11 +94,10 @@ class FastImage
     end
 
     in_path = file_in.respond_to?(:path) ? file_in.path : file_in
-    if (w.to_i==0 && h.to_i==0) then
-	w,h=fast_image.size
-    end
-    p w,h
-    fast_image.resize_image(in_path, file_out.to_s, w.to_i, h.to_i, type_index, out_index, jpeg_quality.to_i)
+    
+    w,h=fast_image.size if (w.to_i==0 && h.to_i==0) 
+	
+    fast_image.resize_image(in_path, file_out.to_s, w.to_i, h.to_i, type_index, out_index, jpeg_quality.to_i, crop[:x].to_i, crop[:y].to_i, crop[:width].to_i, crop[:height].to_i)
 
     if file_in.respond_to?(:close)
       file_in.close
@@ -122,14 +121,14 @@ class FastImage
     temp
   end
 
-  def resize_image(filename_in, filename_out, w, h, image_type, out_image_type, jpeg_quality); end
+  def resize_image(filename_in, filename_out, w, h, image_type, out_image_type, jpeg_quality, cropx, cropy, cropwidth, cropheight); end
   
   inline do |builder|
     builder.include '"gd.h"'
     builder.add_link_flags "-lgd"
     
     builder.c <<-"END"
-      VALUE resize_image(char *filename_in, char *filename_out, int w, int h, int image_type, int out_image_type, int jpeg_quality) {
+      VALUE resize_image(char *filename_in, char *filename_out, int w, int h, int image_type, int out_image_type, int jpeg_quality, int cropX, int cropY, int cropWidth, int cropHeight) {
         gdImagePtr im_in, im_out;
         FILE *in, *out;
         int trans = 0, x = 0, y = 0, f = 0;
@@ -184,9 +183,10 @@ class FastImage
         
 	//gdImageCopyResampled( dst, src, dstX, dstY, srcX, srcY, dstW, dstH, srcW, srcH )
         /* Now copy the original */
-        gdImageCopyResampled(im_out, im_in, 0, 0, 0, 0,
+        gdImageCopyResampled(im_out, im_in, 0, 0, cropX, cropY,
           gdImageSX(im_out), gdImageSY(im_out),
-          gdImageSX(im_in), gdImageSY(im_in));
+          cropWidth==0 ? gdImageSX(im_in) : cropWidth, 
+	  cropHeight==0 ? gdImageSY(im_in) : cropHeight);
 
         out = fopen(filename_out, "wb");
         if (out) {
